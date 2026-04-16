@@ -19,14 +19,22 @@ class RelationType(EntityFile):
                 "Relation file '%s' should have at least 2 elements in header line."
                 % (self.infile.name)
             )
-        # The first column is the source ID and the second is the destination ID.
-        self.start_id = 0
-        self.end_id = 1
+        # Use "source" and "target" column from an export with Neo4j-to-FalkorDB
+        if "source" in header and "target" in header:
+            self.start_id = header.index("source")
+            self.end_id = header.index("target")
+        else:
+            # Fallback
+            self.start_id = 0
+            self.end_id = 1
+            
         self.start_namespace = None
         self.end_namespace = None
 
-        for idx, field in enumerate(header[2:]):
-            self.column_names[idx + 2] = field.strip()
+        for idx, field in enumerate(header):
+            # Add the properties to the relation, skipping source, target and unnecessary Neo4j metadata
+            if idx not in (self.start_id, self.end_id) and field not in ("source_label", "target_label", "type"):
+                self.column_names[idx] = field.strip()
 
     def post_process_header_with_schema(self, header):
         # Can interleave these tasks if preferred.
