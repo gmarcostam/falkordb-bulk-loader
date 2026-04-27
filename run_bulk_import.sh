@@ -3,7 +3,7 @@
 # Check if the graph name was provided
 if [ -z "$1" ]; then
     echo "Error: You must provide the graph name as an argument."
-    echo "Usage: ./import_nodes.sh graph_name"
+    echo "Usage: ./run_bulk_import.sh graph_name"
     exit 1
 fi
 
@@ -51,7 +51,7 @@ echo "🚀 2/3 - Starting massive loading (buffer reduced to 16MB and skipping d
     "${ARGS[@]}" \
     --id-type STRING \
     --escapechar "none" \
-    -b 16 -t 16 -c 500 -s
+    -b 16 -t 16 -c 500
 
 # Check if the loading was successful before applying metadata
 if [ $? -ne 0 ]; then
