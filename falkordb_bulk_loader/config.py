@@ -9,7 +9,6 @@ class Config:
         max_token_size=64,
         enforce_schema=False,
         id_type="STRING",
-        skip_invalid_nodes=False,
         skip_invalid_edges=False,
         separator=",",
         quoting=3,
@@ -37,7 +36,6 @@ class Config:
                 "Specified invalid argument for --id-type, expected STRING or INTEGER"
             )
         self.id_type = id_type
-        self.skip_invalid_nodes = skip_invalid_nodes
         self.skip_invalid_edges = skip_invalid_edges
         self.separator = separator
         self.quoting = quoting

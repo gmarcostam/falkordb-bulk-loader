@@ -88,13 +88,6 @@ def process_entities(entities):
     help="The data type of unique node ID properties (either STRING or INTEGER)",
 )
 @click.option(
-    "--skip-invalid-nodes",
-    "-s",
-    default=False,
-    is_flag=True,
-    help="ignore nodes that use previously defined IDs",
-)
-@click.option(
     "--skip-invalid-edges",
     "-e",
     default=False,
@@ -151,7 +144,6 @@ def bulk_insert(
     separator,
     enforce_schema,
     id_type,
-    skip_invalid_nodes,
     skip_invalid_edges,
     escapechar,
     quote,
@@ -179,7 +171,6 @@ def bulk_insert(
         max_token_size,
         enforce_schema,
         id_type,
-        skip_invalid_nodes,
         skip_invalid_edges,
         separator,
         int(quote),
@@ -233,13 +224,21 @@ def bulk_insert(
     end_time = timer()
     query_buf.report_completion(end_time - start_time)
 
+    # Apply additional labels to existing nodes
+    graph_obj = client.select_graph(graph)
+    for internal_id, labels in query_buf.additional_labels.items():
+        for label in labels:
+            try:
+                graph_obj.query(f"MATCH (n) WHERE ID(n) = {internal_id} SET n:{label}")
+            except Exception as e:
+                print(f"Failed to add label '{label}' to node {internal_id}: {e}")
+
     # Add in Graph Indices after graph creation
-    graph = client.select_graph(graph)
     for i in index:
         l, p = i.split(":")
         print(f"Creating Index on Label: {l}, Property: {p}")
         try:
-            graph.create_node_range_index(l, p)
+            graph_obj.create_node_range_index(l, p)
         except redis.exceptions.ResponseError as e:
             print(f"Unable to create Index on Label: {l}, Property {p}")
             print(e)
@@ -249,7 +248,7 @@ def bulk_insert(
         l, p = i.split(":")
         print(f"Creating Full Text Search Index on Label: {l}, Property: {p}")
         try:
-            graph.create_node_fulltext_index(l, p)
+            graph_obj.create_node_fulltext_index(l, p)
         except redis.exceptions.ResponseError as e:
             print(
                 f"Unable to create Full Text Search Index on Label: {l}, Property {p}"

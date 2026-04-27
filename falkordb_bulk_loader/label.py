@@ -51,15 +51,16 @@ class Label(EntityFile):
     def update_node_dictionary(self, identifier):
         """Add identifier->ID pair to dictionary if we are building relations"""
         if identifier in self.query_buffer.nodes:
-            sys.stderr.write(
-                "Node identifier '%s' was used multiple times - second occurrence at %s:%d\n"
-                % (identifier, self.infile.name, self.reader.line_num)
-            )
-            sys.stderr.flush()
-            if self.config.skip_invalid_nodes is False:
-                sys.exit(1)
-        self.query_buffer.nodes[identifier] = self.query_buffer.top_node_id
-        self.query_buffer.top_node_id += 1
+            # Node already exists, add additional label
+            internal_id = self.query_buffer.nodes[identifier]
+            if internal_id not in self.query_buffer.additional_labels:
+                self.query_buffer.additional_labels[internal_id] = []
+            self.query_buffer.additional_labels[internal_id].append(self.entity_str)
+            return False  # Not a new node
+        else:
+            self.query_buffer.nodes[identifier] = self.query_buffer.top_node_id
+            self.query_buffer.top_node_id += 1
+            return True  # New node
 
     def process_entities(self):
         entities_created = 0
@@ -72,12 +73,17 @@ class Label(EntityFile):
             for row in reader:
                 self.validate_row(row)
 
+                is_new_node = True
                 # Update the node identifier dictionary if necessary
                 if self.config.store_node_identifiers:
                     id_field = row[self.id]
                     if self.id_namespace is not None:
                         id_field = self.id_namespace + "." + str(id_field)
-                    self.update_node_dictionary(id_field)
+                    is_new_node = self.update_node_dictionary(id_field)
+
+                if not is_new_node:
+                    # Skip processing this row as the node already exists
+                    continue
 
                 try:
                     row_binary = self.pack_props(row)

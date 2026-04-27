@@ -39,6 +39,8 @@ class QueryBuffer:
         self.nodes_created = 0  # Total number of nodes created
         self.relations_created = 0  # Total number of relations created
 
+        self.additional_labels = {}  # internal_id -> list of additional labels
+
         self.pool = Pool(nodes=1)
         self.tasks = []
 
